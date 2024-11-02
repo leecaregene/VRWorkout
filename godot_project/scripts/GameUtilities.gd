@@ -304,6 +304,75 @@ func build_workout_statistic(data):
 			"hr_max": hr_max, "hr_avg": hr_avg,
 			"difficulty_avg": difficulty_avg,
 			"calories": 0}
+			
+func calculate_new_difficulty(raw_data, current_time):
+	var score = 0
+	var max_score = 0
+	var heartrate = []
+	var hr_total = 0
+	var hr_max = 0
+	var hr_avg = 0
+	var difficulty_avg = 0
+	var difficulty_sum = 0
+	var data={}
+	
+	for id in raw_data:
+		var starttime = raw_data[id].get("st", 0)
+		if (current_time - starttime) <= 15:
+			data[id] = raw_data[id]
+	
+	for id in data:
+		var exercise = data[id].get("e","unknown/").split("/")[0]
+		print ("Exercise %s"%exercise)
+		var type = data[id].get("t","unknown")
+		var tmp = data[id].get("h",false)
+		var max_hit = data[id].get("mh",1.0)
+		var difficulty = data[id].get("d",0.0)
+		var hit = 0
+		
+		if typeof(tmp) == TYPE_REAL:
+			hit = tmp
+		elif tmp == true:
+			hit = max_hit
+		elif tmp == false:
+			hit = 0.0
+
+		if "avoid" in type:
+			if hit > 0:
+				hit = 0.0
+			else:
+				hit = max_hit
+		var hr = data[id].get("hr",0)
+		hr_total += hr
+		hr_max = max(hr_max, hr)
+		difficulty_sum += difficulty
+		
+		var starttime = data[id].get("st",0)
+		if hit:
+			score += hit
+		max_score += max_hit
+		heartrate.append([starttime, hr])
+
+	if len(data) > 0:
+		hr_avg = hr_total/float(len(data))
+		difficulty_avg = difficulty_sum/float(len(data))
+	
+	if max_score == 0:
+		return difficulty_avg
+	var hit_rate = score/max_score
+	var adjustment = 0
+	if hit_rate < 0.5:
+		adjustment = -0.5
+	elif hit_rate < 0.75:
+		adjustment = -0.25
+	elif hit_rate < 0.9:
+		adjustment = 0.0
+	elif hit_rate < 0.95:
+		adjustment = 0.25
+	else:
+		adjustment = 0.5
+	
+	return difficulty_avg + adjustment
 		
 func upload_challenge(remoteinterface):    
 	   var challenge = {

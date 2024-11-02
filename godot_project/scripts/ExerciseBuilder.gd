@@ -382,11 +382,12 @@ func setup_cue_parameters(difficulty, ph):
 	
 	
 func eval_running_speed(speed):
-	if speed < 7.0:
+	var score = 4.0 + 8.0 * (current_difficulty / 2.0)
+	if speed < (score * (7.0 / 12.0)):
 		return 0.0
-	elif speed < 10.0:
+	elif speed < (score * (10.0 / 12.0)):
 		return 0.5
-	elif speed < 12:
+	elif speed < score:
 		return 0.75
 	return 1.0
 
