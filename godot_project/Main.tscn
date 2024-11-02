@@ -183,7 +183,6 @@ transform = Transform( 0.1, 1.74845e-08, 0, -1.74845e-08, 0.1, 0, 0, 0, 0.1, 0, 
 [node name="Compass" type="MeshInstance" parent="ARVROrigin/NetworkARVRController/Mesh"]
 transform = Transform( 1, 1.06581e-14, 0, -1.06581e-14, 1, 0, 0, 0, 1, 0, 0, 0 )
 mesh = SubResource( 7 )
-material/0 = null
 
 [node name="Keyboard" parent="ARVROrigin" instance=ExtResource( 24 )]
 transform = Transform( 0.6, 0, 0, 0, 0.6, 0, 0, 0, 0.6, 0, 0, 0 )

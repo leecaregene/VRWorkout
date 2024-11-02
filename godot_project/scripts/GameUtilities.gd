@@ -306,15 +306,15 @@ func build_workout_statistic(data):
 			"calories": 0}
 		
 func upload_challenge(remoteinterface):    
-       var challenge = {
-               "cue_list": GameVariables.cue_list,
-               "song": readable_song_list(GameVariables.current_song),
-               "duration": GameVariables.game_result.get("time", 0),
-               "score": GameVariables.game_result.get("vrw_score",0),
-               "points": GameVariables.game_result.get("points",0)
-       }
-       print ("Current song: %s"%(readable_song_list(GameVariables.current_song)))
-       remoteinterface.send_data(GameVariables.device_id,"challenge",challenge )
+	   var challenge = {
+			   "cue_list": GameVariables.cue_list,
+			   "song": readable_song_list(GameVariables.current_song),
+			   "duration": GameVariables.game_result.get("time", 0),
+			   "score": GameVariables.game_result.get("vrw_score",0),
+			   "points": GameVariables.game_result.get("points",0)
+	   }
+	   print ("Current song: %s"%(readable_song_list(GameVariables.current_song)))
+	   remoteinterface.send_data(GameVariables.device_id,"challenge",challenge )
 
 func hardness_level():
 	var retVal = 0

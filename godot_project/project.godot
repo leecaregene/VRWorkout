@@ -78,8 +78,12 @@ GameVariables="*res://scenes/GameVariables.tscn"
 
 [gdnative]
 
-singletons=[  ]
+singletons=[ "res://addons/godot-openvr/godot_openvr.gdnlib" ]
 singletons_disabled=[  ]
+
+[global]
+
+game=false
 
 [logging]
 
