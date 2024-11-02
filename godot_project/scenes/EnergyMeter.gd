@@ -13,7 +13,7 @@ var difficulty = 2
 
 
 func update_meter():
-	var score = 4.0 + 8.0 * (difficulty / 2.0)
+	var score = 6.0 + 14.0 * (difficulty / 2.0)
 	if GameVariables.energy_level_max > 0:
 		var value = 100*input/(score * 1.5)	
 		$Viewport/CanvasLayer/TextureProgress.value = clamp(value,0,100)	

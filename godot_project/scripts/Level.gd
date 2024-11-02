@@ -273,6 +273,8 @@ func _ready():
 
 	#print ("Rebalance exercises: %s"%(str(rebalance_exercises)))
 
+	get_node("heart_coin").set_hr(target_hr)
+	get_node("heart_coin").set_marker("actual", target_hr)
 	get_node("heart_coin").set_marker("low", low_hr)
 	get_node("heart_coin").set_marker("high", high_hr)
 	

@@ -52,5 +52,5 @@ func _process(delta):
 		if not anim.is_playing():
 			anim.play("beat",-1.0,3.0)
 		last_beat = current_time	
-	if current_time > last_hr_update + 5.0:
-		hide_coin()
+#	if current_time > last_hr_update + 5.0:
+#		hide_coin()
