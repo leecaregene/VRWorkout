@@ -305,7 +305,7 @@ func build_workout_statistic(data):
 			"difficulty_avg": difficulty_avg,
 			"calories": 0}
 			
-func calculate_new_difficulty(raw_data, current_time):
+func calculate_new_difficulty(raw_data, current_time, target_hr):
 	var score = 0
 	var max_score = 0
 	var heartrate = []
@@ -371,6 +371,17 @@ func calculate_new_difficulty(raw_data, current_time):
 		adjustment = 0.25
 	else:
 		adjustment = 0.5
+		
+	if hr_avg < (target_hr * 0.75):
+		adjustment += 0.5
+	elif hr_avg < (target_hr * 0.9):
+		adjustment += 0.25
+	elif hr_avg > (target_hr * 1.1):
+		adjustment -= 0.25
+	elif hr_avg > (target_hr * 1.25):
+		adjustment -= 0.5
+	else:
+		adjustment += 0
 	
 	return difficulty_avg + adjustment
 		

@@ -4,73 +4,106 @@ var vrhealthAPI = null
 
 signal heart_rate_received(hr)
 
-var port = 9988
-var server = WebSocketServer.new()
-var peer = null
-var last_received = 0
-var message_interval_limit = 1000
-var deadman_timeout = 10000
 var hr_active = false
 
-#Check if script exists and if it does load it
-func load_VRHealthAPI():
-	var script_file = "res://scripts/3rdparty/VRHealthAPIConnect.gd"
-	if ResourceLoader.exists(script_file):
-		vrhealthAPI = load(script_file).new()
-	else:
-		print ("VRHealth API not available")
-
-# Called when the node enters the scene tree for the first time.
-func _ready():
-	load_VRHealthAPI()
-	if vrhealthAPI:	
-		print ("Loading Oculus Quest VRHealth settings")
-		vrhealthAPI.loadConnection(ProjectSettings.get("application/config/vrhealth_config"))
-		add_child(vrhealthAPI)
-		vrhealthAPI.connect("heart_rate_received", self, "process_heartrate")	
-		vrhealthAPI.connectLive()
-	server.listen(port)
-	server.connect("client_connected", self, "_connected")
-	server.connect("data_received", self, "_data_received")
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-#func _process(delta):
-#	pass
-
-
-var throttle_counter = 0
-func _process(delta):
-	server.poll()
-	
-	throttle_counter += 1
-	if throttle_counter > 20:
-		throttle_counter = 0
-		var now = OS.get_ticks_msec()
-		if now > last_received + deadman_timeout:
-			GameVariables.hr_active = false
-	
-	
-func _connected(id, protocol):
-	print ("Client connected")
-	peer = server.get_peer(id)
-
-func _data_received(id):
-	print ("Data received")		
-	var packet = peer.get_packet()
-	print (packet.get_string_from_ascii())
-	var hr = int(packet.get_string_from_ascii())
-
-	process_heartrate(hr)
-
+#
 func process_heartrate(hr):
-	var now = OS.get_ticks_msec() 
-	if now > last_received + message_interval_limit:
-		hr_active = true
-		print ("Heartrate received %s"%str(hr))
-		emit_signal("heart_rate_received",hr)
-		last_received = now
-		GameVariables.current_hr = hr
-		GameVariables.hr_active = true
+	hr_active = true
+	print ("Heartrate received %s"%str(hr))
+	emit_signal("heart_rate_received",hr)
+	GameVariables.current_hr = hr
+	GameVariables.hr_active = true
+
+
+# Replace with your actual WebSocket key
+var WEBSOCKET_KEY = ProjectSettings.get_setting("global/hyperate api key")
+var WEBSOCKET_URL = "wss://app.hyperate.io/socket/websocket?token=" + WEBSOCKET_KEY
+
+# Channel ID for testing
+var CHANNEL_ID = ProjectSettings.get_setting("global/hyperate id")
+
+var websocket = WebSocketClient.new()
+var keep_alive_timer = Timer.new()
+
+func _ready():
+	# Connect WebSocket signals
+	websocket.connect("connection_established", self, "_on_connection_established")
+	websocket.connect("connection_closed", self, "_on_connection_closed")
+	websocket.connect("connection_error", self, "_on_connection_error")
+	websocket.connect("data_received", self, "_on_data_received")
+
+	# Set up keep-alive timer
+	keep_alive_timer.wait_time = 10  # Send keep-alive every 10 seconds
+	keep_alive_timer.connect("timeout", self, "_send_keep_alive")
+	add_child(keep_alive_timer)
+
+	# Connect to the WebSocket server
+	var err = websocket.connect_to_url(WEBSOCKET_URL)
+	if err != OK:
+		print("Failed to connect to WebSocket: ", err)
+
+func _process(delta):
+	# Poll the WebSocket client
+	websocket.poll()
+
+func _on_connection_established(protocol):
+	print("WebSocket connection established with protocol: ", protocol)
+	keep_alive_timer.start()  # Start the keep-alive timer
+	_join_channel(CHANNEL_ID)  # Join the testing channel
+
+func _on_connection_closed(was_clean):
+	print("WebSocket connection closed. Clean: ", was_clean)
+	keep_alive_timer.stop()  # Stop the keep-alive timer
+
+func _on_connection_error():
+	print("WebSocket connection error")
+
+func _on_data_received():
+	# Handle incoming data
+	var data = websocket.get_peer(1).get_packet().get_string_from_utf8()
+	var json = JSON.parse(data)
+	if json.error == OK:
+		var message = json.result
+		if message.has("event") and message["event"] == "hr_update":
+			var hr = message["payload"]["hr"]
+#			print("Heart rate update: ", hr)
+			process_heartrate(hr)
 	else:
-		print ("Limit heart rate interval")
-	
+		print("Failed to parse JSON: ", json.error_string)
+
+func _join_channel(channel_id):
+	var join_message = {
+		"topic": "hr:" + channel_id,
+		"event": "phx_join",
+		"payload": {},
+		"ref": 0
+	}
+	_send_message(join_message)
+
+func _leave_channel(channel_id):
+	var leave_message = {
+		"topic": "hr:" + channel_id,
+		"event": "phx_leave",
+		"payload": {},
+		"ref": 0
+	}
+	_send_message(leave_message)
+
+func _send_keep_alive():
+	var keep_alive_message = {
+		"topic": "phoenix",
+		"event": "heartbeat",
+		"payload": {},
+		"ref": 0
+	}
+	_send_message(keep_alive_message)
+
+func _send_message(message):
+	var json_string = JSON.print(message)
+	websocket.get_peer(1).put_packet(json_string.to_utf8())
+
+func _exit_tree():
+	# Clean up
+	if websocket.get_connection_status() == WebSocketClient.CONNECTION_CONNECTED:
+		_leave_channel(CHANNEL_ID)
+		websocket.disconnect_from_host()

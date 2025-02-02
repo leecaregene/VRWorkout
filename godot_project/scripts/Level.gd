@@ -47,9 +47,9 @@ var song_current_bpm = 0
 
 var ducking_mode = true
 
-var target_hr = 140
-var low_hr = 130
-var high_hr = 150
+var target_hr = 120
+var low_hr = 110
+var high_hr = 130
 var auto_difficulty = false
 var avg_hr = 60	
 	
@@ -273,8 +273,6 @@ func _ready():
 
 	#print ("Rebalance exercises: %s"%(str(rebalance_exercises)))
 
-	get_node("heart_coin").set_hr(target_hr)
-	get_node("heart_coin").set_marker("actual", target_hr)
 	get_node("heart_coin").set_marker("low", low_hr)
 	get_node("heart_coin").set_marker("high", high_hr)
 	
@@ -437,7 +435,7 @@ func _process(delta):
 
 	if cue_emitter.current_playback_time > last_difficulty_update + 15:
 		last_difficulty_update = cue_emitter.current_playback_time
-		var new_difficulty = gu.calculate_new_difficulty(GameVariables.level_statistics_data, cue_emitter.current_playback_time)
+		var new_difficulty = gu.calculate_new_difficulty(GameVariables.level_statistics_data, cue_emitter.current_playback_time, target_hr)
 		exercise_builder.setup_difficulty(new_difficulty)
 	
 	if cue_emitter.current_playback_time > last_game_update + 0.5:
