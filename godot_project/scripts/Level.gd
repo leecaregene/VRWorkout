@@ -690,7 +690,7 @@ func handle_sprint_cues_actual(target_time):
 	last_sprint_update = now
 	var max_hit_score = 1.0
 	get_node("EnergyMeter").input = running_speed
-	get_node("EnergyMeter").difficulty = exercise_builder.current_difficulty
+#	get_node("EnergyMeter").difficulty = exercise_builder.current_difficulty
 	var actual_hit_score = exercise_builder.eval_running_speed(running_speed)
 	var ingame_id = add_statistics_element(GameVariables.get_next_ingame_id(), exercise_builder.state_string(exercise_builder.cue_emitter_state), "", exercise_builder.current_difficulty, points, actual_hit_score, cue_emitter.current_playback_time, cue_emitter.current_playback_time, GameVariables.current_hr, max_hit_score, 0)
 	var obj = SprintObject.new(ingame_id, actual_hit_score)

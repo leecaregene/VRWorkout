@@ -93,10 +93,12 @@ func get_groove_bpm():
 	return retVal
 	
 func get_running_speed():
-	var retVal = 0
-	if OS.get_ticks_msec() < last_signifficant_ts + 1000 and average_interval > 0 and steps > 3:
-		retVal = 1000.0/average_interval
-	return retVal
+	var velocity = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	return velocity.abs().length()
+#	var retVal = 0
+#	if OS.get_ticks_msec() < last_signifficant_ts + 1000 and average_interval > 0 and steps > 3:
+#		retVal = 1000.0/average_interval
+#	return retVal
 		
 var uinterval = 0
 

@@ -382,14 +382,18 @@ func setup_cue_parameters(difficulty, ph):
 	
 	
 func eval_running_speed(speed):
-	var score = 6.0 + 14.0 * (current_difficulty / 2.0)
-	if speed < (score * (7.0 / 12.0)):
-		return 0.0
-	elif speed < (score * (10.0 / 12.0)):
-		return 0.5
-	elif speed < score:
-		return 0.75
-	return 1.0
+	if current_difficulty == 0:
+		return 1.0
+	var score = speed / (current_difficulty / 2.0)
+	return min(1.0, score)
+#	var score = 6.0 + 14.0 * (current_difficulty / 2.0)
+#	if speed < (score * (7.0 / 12.0)):
+#		return 0.0
+#	elif speed < (score * (10.0 / 12.0)):
+#		return 0.5
+#	elif speed < score:
+#		return 0.75
+#	return 1.0
 
 func state_string(state):
 	if state == CueState.STAND:
