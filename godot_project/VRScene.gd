@@ -831,7 +831,7 @@ func _on_Area_level_selected(filename, diff, num):
 			$MultiplayerRoom.send_game_message({"type":"playlist","playlist":filename})
 
 			
-		GameVariables.exercise_duration_avg = ProjectSettings.get("game/exercise_duration_avg")
+		GameVariables.exercise_duration_avg = 305.0
 		#Store the parameters that should survive a restart
 		gu.store_persistent_config(GameVariables.config_file_location, get_persisting_parameters())
 		
@@ -852,7 +852,7 @@ func _on_Area_level_selected(filename, diff, num):
 		var song_names = gu.readable_song_list(filename)
 		game_statistics = {"difficulty": diff, "song": song_names}
 
-		GameVariables.difficulty = diff
+		GameVariables.difficulty = 1.0
 		
 		if num < 0:
 			level.audio_filename = [abs(num)*100]

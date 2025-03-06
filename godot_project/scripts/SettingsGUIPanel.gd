@@ -174,7 +174,7 @@ func _on_CurvedCuesButton_pressed():
 	update_widgets()
 
 func _on_ExerciseDuration_value_changed(value):
-	ProjectSettings.set("game/exercise_duration_avg", value)
+#	ProjectSettings.set("game/exercise_duration_avg", value)
 	update_widgets()
 	
 func _input(event):

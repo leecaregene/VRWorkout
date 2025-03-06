@@ -305,16 +305,81 @@ func build_workout_statistic(data):
 			"difficulty_avg": difficulty_avg,
 			"calories": 0}
 			
-func calculate_new_difficulty(raw_data, current_time, target_hr):
+func compare_rows(a, b):
+	if a[0] < b[0]:
+		return -1
+	elif a[0] > b[0]:
+		return 1
+	else:
+		return 0
+
+func weighted_average_time_based(given_array: Array, is_linear: bool) -> float:
+	# This function gives more weight to the more recent data
+	if given_array.size() == 0:
+		return 0.0
+	
+	# Sort by timestamp (if not already sorted)
+	given_array.sort_custom(self, "compare_rows")
+
+	var min_time = given_array[0][0]
+	var max_time = given_array[-1][0]
+	var time_range = max_time - min_time
+
+	if time_range == 0:
+		return given_array[-1][1] # If all timestamps are the same, return last value
+	
+	var weighted_sum := 0.0
+	var weight_total := 0.0
+	
+	for sample in given_array:
+		var time_weight = (sample[0] - min_time) / time_range # Normalize time
+		var weight := 0.0;
+
+		if is_linear:
+			weight = time_weight + 0.01 # linear bias with 0 weight prevention
+		else:
+			weight = pow(time_weight + 0.01, 2) # Quadratic bias with 0 weight prevention
+		
+		weighted_sum += sample[1] * weight # Multiply value by weight
+		weight_total += weight
+
+	return weighted_sum / weight_total if weight_total > 0 else 0.0
+
+func output_csv(file_path: String, row: Dictionary):
+	var headers = ["player_id", "timestamp", "height", "weight", "age", "average_heart_rate", "hit_rate", "current_difficulty", "new_difficulty"]
+	var file = File.new()
+	var file_exists = file.file_exists(file_path)
+	
+	# If file does not exist, create it and write the header
+	if not file_exists:
+		file.open(file_path, File.WRITE)
+		file.store_line(",".join(headers))
+		file.close()
+	
+	# Open the file in read/write mode, and move to its end
+	file.open(file_path, File.READ_WRITE)
+	file.seek_end()
+	
+	# Convert dictionary values to an ordered CSV row using the header order
+	var row_data = []
+	for h in headers:
+		row_data.append(str(row[h]))
+	file.store_line(",".join(row_data))
+	
+	file.close()
+
+func calculate_new_difficulty(raw_data, current_time, player_id, age, height, weight):
+	var max_possible_heart_rate = 220 - age
+
 	var score = 0
 	var max_score = 0
-	var heartrate = []
+	var heartrate_with_time = []
 	var hr_total = 0
 	var hr_max = 0
 	var hr_avg = 0
 	var difficulty_avg = 0
 	var difficulty_sum = 0
-	var data={}
+	var data = {}
 	
 	for id in raw_data:
 		var starttime = raw_data[id].get("st", 0)
@@ -322,12 +387,12 @@ func calculate_new_difficulty(raw_data, current_time, target_hr):
 			data[id] = raw_data[id]
 	
 	for id in data:
-		var exercise = data[id].get("e","unknown/").split("/")[0]
-		print ("Exercise %s"%exercise)
-		var type = data[id].get("t","unknown")
-		var tmp = data[id].get("h",false)
-		var max_hit = data[id].get("mh",1.0)
-		var difficulty = data[id].get("d",0.0)
+		var exercise = data[id].get("e", "unknown/").split("/")[0]
+		print("Exercise %s"%exercise)
+		var type = data[id].get("t", "unknown")
+		var tmp = data[id].get("h", false)
+		var max_hit = data[id].get("mh", 1.0)
+		var difficulty = data[id].get("d", 0.0)
 		var hit = 0
 		
 		if typeof(tmp) == TYPE_REAL:
@@ -342,48 +407,88 @@ func calculate_new_difficulty(raw_data, current_time, target_hr):
 				hit = 0.0
 			else:
 				hit = max_hit
-		var hr = data[id].get("hr",0)
-		hr_total += hr
-		hr_max = max(hr_max, hr)
+		
 		difficulty_sum += difficulty
 		
-		var starttime = data[id].get("st",0)
+		var starttime = data[id].get("st", 0)
 		if hit:
 			score += hit
 		max_score += max_hit
-		heartrate.append([starttime, hr])
+
+		var hr = data[id].get("hr", 0)
+		if hr:
+			hr_total += hr
+			hr_max = max(hr_max, hr)
+			heartrate_with_time.append([starttime, hr])
 
 	if len(data) > 0:
-		hr_avg = hr_total/float(len(data))
-		difficulty_avg = difficulty_sum/float(len(data))
+		# hr_avg = hr_total/float(len(data))
+		difficulty_avg = difficulty_sum / float(len(data))
+		hr_avg = weighted_average_time_based(heartrate_with_time, false)
 	
 	if max_score == 0:
 		return difficulty_avg
-	var hit_rate = score/max_score
-	var adjustment = 0
-	if hit_rate < 0.5:
-		adjustment = -0.5
-	elif hit_rate < 0.75:
-		adjustment = -0.25
-	elif hit_rate < 0.9:
-		adjustment = 0.0
-	elif hit_rate < 0.95:
-		adjustment = 0.25
-	else:
-		adjustment = 0.5
-		
-	if hr_avg < (target_hr * 0.75):
-		adjustment += 0.5
-	elif hr_avg < (target_hr * 0.9):
-		adjustment += 0.25
-	elif hr_avg > (target_hr * 1.1):
-		adjustment -= 0.25
-	elif hr_avg > (target_hr * 1.25):
-		adjustment -= 0.5
-	else:
-		adjustment += 0
 	
+	var hit_rate = score / max_score
+
+	# You can adjust the weight for the 2 IVs, currently it is 50%-50%
+	var adjustment := 0.0
+	var weight_for_heart_rate := 1
+	var weight_for_hit_rate := 1
+
+	# Adjustment based on heart rate
+	if hr_avg < (max_possible_heart_rate * 0.2) or hr_avg > (max_possible_heart_rate * 1.1):
+		# TODO: too low or too high, something is not right, stop the game (modify this line cuz I just anyhow)
+		print("Something is wrong. Stop the game!")
+	elif hr_avg >= (max_possible_heart_rate * 0.6) and hr_avg <= (max_possible_heart_rate * 0.8):
+		# In the appropriate range, but we allow some fluctuation occasionally
+		if randf() < 0.5:
+			var ratio = hr_avg / max_possible_heart_rate
+			# Changed from nromal distribution to uniform distribution for the random number
+			adjustment += - (ratio - 0.7) * rand_range(0.0, 2.0) * weight_for_heart_rate
+	else:
+		# The line passing through (0.5, 0.5) and (0.9, -0.5)
+		var ratio = hr_avg / max_possible_heart_rate
+		adjustment += weight_for_heart_rate * clamp(-2.5 * ratio + 1.75, -0.5, 0.5)
+
+	# adjustment based on hit rate
+	if hit_rate < 0.75:
+		# The line passing through (0.55, -0.5) and (0.75, -0.25)
+		adjustment += weight_for_hit_rate * clamp(1.25 * hit_rate - 1.1875, -0.5, -0.25)
+	elif hit_rate > 0.9:
+		# The line passing through (0.9, 0.25) and (1, 0.5)
+		adjustment += weight_for_hit_rate * clamp(2.5 * hit_rate - 2.0, 0.25, 0.5)
+	else:
+		# In the appropriate range, but we allow some fluctuation occasionally
+		if randf() < 0.5:
+			# Changed from nromal distribution to uniform distribution for the random number
+			adjustment += weight_for_hit_rate * (hit_rate - 0.825) * rand_range(0.0, 2.0)
+
+	# TODO: check if we need to round (this is to 4dp)
+	# adjustment = round(adjustment * 10000) / 10000.0
+
+	# TODO: change the path of output file if needed
+	var output_row = {
+		"player_id": player_id,
+		"timestamp": current_time,
+		"height": height,
+		"weight": weight,
+		"age": age,
+		"average_heart_rate": hr_avg,
+		"hit_rate": hit_rate,
+		"current_difficulty": difficulty_avg,
+		"new_difficulty": difficulty_avg + adjustment
+	}
+	output_csv("./player_data.csv", output_row)
+
 	return difficulty_avg + adjustment
+
+# TODO: use this for small adjustment in the controlled group if you want, or we just use a constant
+func calculate_random_difficulty_change():
+	if randi() % 2 == 0:
+		return 0.2
+	else:
+		return -0.2
 		
 func upload_challenge(remoteinterface):    
 	   var challenge = {

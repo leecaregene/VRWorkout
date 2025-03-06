@@ -435,7 +435,7 @@ func _process(delta):
 
 	if cue_emitter.current_playback_time > last_difficulty_update + 15:
 		last_difficulty_update = cue_emitter.current_playback_time
-		var new_difficulty = gu.calculate_new_difficulty(GameVariables.level_statistics_data, cue_emitter.current_playback_time, target_hr)
+		var new_difficulty = gu.calculate_new_difficulty(GameVariables.level_statistics_data, cue_emitter.current_playback_time, ProjectSettings.get_setting("global/Player ID"), ProjectSettings.get_setting("global/age"), ProjectSettings.get_setting("global/Height"), ProjectSettings.get_setting("global/Weight"))
 		exercise_builder.setup_difficulty(new_difficulty)
 	
 	if cue_emitter.current_playback_time > last_game_update + 0.5:
