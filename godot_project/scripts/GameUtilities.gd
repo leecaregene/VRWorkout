@@ -369,6 +369,7 @@ func output_csv(file_path: String, row: Dictionary):
 	file.close()
 
 func calculate_new_difficulty(raw_data, current_time, player_id, age, height, weight):
+
 	var max_possible_heart_rate = 220 - age
 
 	var score = 0
@@ -466,6 +467,9 @@ func calculate_new_difficulty(raw_data, current_time, player_id, age, height, we
 
 	# TODO: check if we need to round (this is to 4dp)
 	# adjustment = round(adjustment * 10000) / 10000.0
+
+	if ProjectSettings.get("global/control"):
+		adjustment = 0.0
 
 	# TODO: change the path of output file if needed
 	var output_row = {
