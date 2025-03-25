@@ -84,6 +84,8 @@ singletons_disabled=[  ]
 [global]
 
 game=false
+"heart rate dda"=true
+"hit rate dda"=true
 
 [logging]
 
